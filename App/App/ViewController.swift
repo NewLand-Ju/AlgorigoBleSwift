@@ -12,6 +12,8 @@ import RxSwift
 
 class ViewController: UIViewController {
 
+    static private let UUID_SERVICE = "F000AA20-0451-4000-B000-000000000000"
+    
     private var disposable: Disposable? = nil
     private var disposableBag = DisposeBag()
     private var scanning: Bool {
@@ -54,21 +56,58 @@ class ViewController: UIViewController {
         }
     }
     
+    @IBAction func handleScanSpecificBtn(_ sender: Any) {
+        if scanning {
+            stopScan()
+        } else {
+            startScanWithServices()
+        }
+    }
+    
     private func startScan() {
-        disposable = BluetoothManager.instance.scanDevice()
-            .subscribeOn(ConcurrentDispatchQueueScheduler(qos: .background))
-            .observeOn(MainScheduler.instance)
-            .subscribe(onNext: { [weak self] (devices) in
-                print("scanDevice onNext:\(devices.map { $0.getName() ?? $0.getIdentifier()})")
-                self?.devices = devices
-                self?.tableView.reloadData()
-            }, onError: { (error) in
-                print("scanDevice onError:\(error)")
-            }, onCompleted: {
-                print("scanDevice onCompleted")
-            }, onDisposed: {
-                print("scanDevice onDisposed")
-            })
+        if disposable == nil {
+            disposable = BluetoothManager.instance.scanDevice()
+                .subscribeOn(ConcurrentDispatchQueueScheduler(qos: .background))
+                .observeOn(MainScheduler.instance)
+                .do(onSubscribe: { [weak self] in
+                    self?.devices = []
+                    self?.tableView.reloadData()
+                })
+                .subscribe(onNext: { [weak self] (devices) in
+    //                print("scanDevice onNext:\(devices.map { $0.getName() ?? $0.getIdentifier()})")
+                    self?.devices = devices
+                    self?.tableView.reloadData()
+                }, onError: { (error) in
+                    print("scanDevice onError:\(error)")
+                }, onCompleted: {
+                    print("scanDevice onCompleted")
+                }, onDisposed: {
+                    print("scanDevice onDisposed")
+                })
+        }
+    }
+    
+    private func startScanWithServices() {
+        if disposable == nil {
+            disposable = BluetoothManager.instance.scanDevice(withServices: [ViewController.UUID_SERVICE])
+                .subscribeOn(ConcurrentDispatchQueueScheduler(qos: .background))
+                .observeOn(MainScheduler.instance)
+                .do(onSubscribe: { [weak self] in
+                    self?.devices = []
+                    self?.tableView.reloadData()
+                })
+                .subscribe(onNext: { [weak self] (devices) in
+    //                print("scanDevice onNext:\(devices.map { $0.getName() ?? $0.getIdentifier()})")
+                    self?.devices = devices
+                    self?.tableView.reloadData()
+                }, onError: { (error) in
+                    print("scanDevice onError:\(error)")
+                }, onCompleted: {
+                    print("scanDevice onCompleted")
+                }, onDisposed: {
+                    print("scanDevice onDisposed")
+                })
+        }
     }
     
     private func stopScan() {

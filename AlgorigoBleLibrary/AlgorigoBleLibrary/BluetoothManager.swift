@@ -69,9 +69,9 @@ public class BluetoothManager : NSObject, CBCentralManagerDelegate {
         self.bleDeviceDelegate = bleDeviceDelegate
     }
     
-    public func scanDevice() -> Observable<[BleDevice]> {
+    public func scanDevice(withServices services: [String]? = nil) -> Observable<[BleDevice]> {
         var bleDeviceList = [BleDevice]()
-        return scanDeviceInner()
+        return scanDeviceInner(withServices: services)
             .map { (peripheral) -> [BleDevice] in
                 let device = self.onBluetoothDeviceFound(peripheral)
                 if let _device = device {
@@ -83,17 +83,20 @@ public class BluetoothManager : NSObject, CBCentralManagerDelegate {
             }
     }
     
-    public func scanDevice(intervalSec: Int) -> Observable<[BleDevice]> {
-        return scanDevice()
+    public func scanDevice(withServices services: [String]? = nil, intervalSec: Int) -> Observable<[BleDevice]> {
+        return scanDevice(withServices: services)
         .takeUntil(Observable<Int>.timer(DispatchTimeInterval.seconds(intervalSec), scheduler: ConcurrentDispatchQueueScheduler(qos: .background)))
     }
     
-    private func scanDeviceInner() -> Observable<CBPeripheral> {
+    private func scanDeviceInner(withServices services: [String]? = nil) -> Observable<CBPeripheral> {
         return checkBluetoothStatus()
             .andThen(scanSubject
                 .do(onSubscribe: {
                     if !self.scanSubject.hasObservers {
-                        self.manager.scanForPeripherals(withServices: nil, options: nil)
+                        let services = services?.map({ (uuidStr) -> CBUUID? in
+                            CBUUID(string: uuidStr)
+                        }).compactMap({ $0 })
+                        self.manager.scanForPeripherals(withServices: services, options: [CBCentralManagerScanOptionAllowDuplicatesKey : false])
                     }
                 }, onDispose: {
                     if !self.scanSubject.hasObservers {
