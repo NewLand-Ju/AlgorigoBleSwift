@@ -23,7 +23,7 @@ class DeviceTableViewCell: UITableViewCell {
     var device: BleDevice? {
         didSet {
             titleView.text = device?.getName() ?? device?.getIdentifier()
-            print("connectionState:\(device?.connectionState)")
+//            print("connectionState:\(device?.connectionState)")
             switch device?.connectionState {
             case .CONNECTED:
                 connectBtn.setTitle("Disconnect", for: .normal)

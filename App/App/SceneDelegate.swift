@@ -7,11 +7,19 @@
 //
 
 import UIKit
+import AlgorigoBleLibrary
+import RxSwift
 
 class SceneDelegate: UIResponder, UIWindowSceneDelegate {
 
     var window: UIWindow?
 
+
+    private var disposesable: Disposable? = nil
+    
+    deinit {
+        disposesable?.dispose()
+    }
 
     func scene(_ scene: UIScene, willConnectTo session: UISceneSession, options connectionOptions: UIScene.ConnectionOptions) {
         // Use this method to optionally configure and attach the UIWindow `window` to the provided UIWindowScene `scene`.
@@ -40,12 +48,30 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
     func sceneWillEnterForeground(_ scene: UIScene) {
         // Called as the scene transitions from the background to the foreground.
         // Use this method to undo the changes made on entering the background.
+        print("sceneWillEnterForeground:\(scene)")
+        disposesable?.dispose()
     }
 
     func sceneDidEnterBackground(_ scene: UIScene) {
         // Called as the scene transitions from the foreground to the background.
         // Use this method to save data, release shared resources, and store enough scene-specific state information
         // to restore the scene back to its current state.
+        print("sceneDidEnterBackground:\(scene)")
+        disposesable = BluetoothManager.instance.scanDevice(withServices: [ViewController.UUID_SERVICE])
+            .do(onDispose: { [weak self] in
+                print("SceneDelegate::onDispose")
+                self?.disposesable = nil
+            })
+            .subscribe({ (event) in
+                switch event {
+                case .next(let devices):
+                    print("SceneDelegate::devices:\(devices)")
+                case .completed:
+                    break
+                case .error(let error):
+                    print("SceneDelegate::error:\(error)")
+                }
+            })
     }
 
 
