@@ -31,31 +31,45 @@
                                     <action selector="handleScanSpecificBtn:" destination="BYZ-38-t0r" eventType="touchUpInside" id="ANe-f6-0Jf"/>
                                 </connections>
                             </button>
-                            <tableView clipsSubviews="YES" contentMode="scaleToFill" alwaysBounceVertical="YES" dataMode="prototypes" style="plain" separatorStyle="default" rowHeight="-1" estimatedRowHeight="-1" sectionHeaderHeight="28" sectionFooterHeight="28" translatesAutoresizingMaskIntoConstraints="NO" id="Al4-d9-pDC">
+                            <stackView opaque="NO" contentMode="scaleToFill" distribution="fillEqually" translatesAutoresizingMaskIntoConstraints="NO" id="tq2-vE-cAP">
                                 <rect key="frame" x="20" y="20" width="335" height="551"/>
-                                <color key="backgroundColor" systemColor="systemBackgroundColor"/>
-                                <connections>
-                                    <outlet property="dataSource" destination="BYZ-38-t0r" id="HR5-uy-RbG"/>
-                                </connections>
-                            </tableView>
+                                <subviews>
+                                    <tableView clipsSubviews="YES" contentMode="scaleToFill" restorationIdentifier="all" alwaysBounceVertical="YES" dataMode="prototypes" style="plain" separatorStyle="default" rowHeight="-1" estimatedRowHeight="-1" sectionHeaderHeight="28" sectionFooterHeight="28" translatesAutoresizingMaskIntoConstraints="NO" id="Al4-d9-pDC">
+                                        <rect key="frame" x="0.0" y="0.0" width="167.5" height="551"/>
+                                        <color key="backgroundColor" systemColor="systemBackgroundColor"/>
+                                        <connections>
+                                            <outlet property="dataSource" destination="BYZ-38-t0r" id="HR5-uy-RbG"/>
+                                        </connections>
+                                    </tableView>
+                                    <tableView clipsSubviews="YES" contentMode="scaleToFill" restorationIdentifier="device" alwaysBounceVertical="YES" dataMode="prototypes" style="plain" separatorStyle="default" rowHeight="-1" estimatedRowHeight="-1" sectionHeaderHeight="28" sectionFooterHeight="28" translatesAutoresizingMaskIntoConstraints="NO" id="Qph-26-MKg">
+                                        <rect key="frame" x="167.5" y="0.0" width="167.5" height="551"/>
+                                        <color key="backgroundColor" systemColor="systemBackgroundColor"/>
+                                        <connections>
+                                            <outlet property="dataSource" destination="BYZ-38-t0r" id="tWB-q5-LlI"/>
+                                            <outlet property="delegate" destination="BYZ-38-t0r" id="kTh-zg-M28"/>
+                                        </connections>
+                                    </tableView>
+                                </subviews>
+                            </stackView>
                         </subviews>
                         <viewLayoutGuide key="safeArea" id="6Tk-OE-BBY"/>
                         <color key="backgroundColor" systemColor="systemBackgroundColor"/>
                         <constraints>
-                            <constraint firstItem="Al4-d9-pDC" firstAttribute="top" secondItem="6Tk-OE-BBY" secondAttribute="top" constant="20" id="5ON-jF-aMC"/>
-                            <constraint firstItem="zWw-4h-hdk" firstAttribute="top" secondItem="Al4-d9-pDC" secondAttribute="bottom" constant="8" symbolic="YES" id="9oZ-MZ-1dF"/>
                             <constraint firstItem="KNu-oR-7Xh" firstAttribute="leading" secondItem="6Tk-OE-BBY" secondAttribute="leading" constant="20" id="H8L-Vl-B8I"/>
                             <constraint firstItem="6Tk-OE-BBY" firstAttribute="trailing" secondItem="KNu-oR-7Xh" secondAttribute="trailing" constant="20" id="MqQ-XX-D89"/>
+                            <constraint firstItem="tq2-vE-cAP" firstAttribute="leading" secondItem="6Tk-OE-BBY" secondAttribute="leading" constant="20" id="NaW-YA-Eb9"/>
                             <constraint firstItem="6Tk-OE-BBY" firstAttribute="bottom" secondItem="KNu-oR-7Xh" secondAttribute="bottom" constant="20" id="NsL-Rv-Yui"/>
                             <constraint firstItem="6Tk-OE-BBY" firstAttribute="trailing" secondItem="zWw-4h-hdk" secondAttribute="trailing" constant="20" id="SMJ-7g-jA1"/>
+                            <constraint firstItem="tq2-vE-cAP" firstAttribute="top" secondItem="6Tk-OE-BBY" secondAttribute="top" constant="20" id="VVD-8z-4vt"/>
                             <constraint firstItem="KNu-oR-7Xh" firstAttribute="top" secondItem="zWw-4h-hdk" secondAttribute="bottom" constant="8" symbolic="YES" id="dJo-aD-OvB"/>
+                            <constraint firstItem="6Tk-OE-BBY" firstAttribute="trailing" secondItem="tq2-vE-cAP" secondAttribute="trailing" constant="20" id="do3-MT-X23"/>
                             <constraint firstItem="zWw-4h-hdk" firstAttribute="leading" secondItem="6Tk-OE-BBY" secondAttribute="leading" constant="20" id="f00-tk-8CQ"/>
-                            <constraint firstItem="Al4-d9-pDC" firstAttribute="leading" secondItem="6Tk-OE-BBY" secondAttribute="leading" constant="20" id="kRO-3R-fjs"/>
-                            <constraint firstItem="6Tk-OE-BBY" firstAttribute="trailing" secondItem="Al4-d9-pDC" secondAttribute="trailing" constant="20" id="lQe-5t-tOu"/>
+                            <constraint firstItem="zWw-4h-hdk" firstAttribute="top" secondItem="tq2-vE-cAP" secondAttribute="bottom" constant="8" symbolic="YES" id="k8C-iL-ylR"/>
                         </constraints>
                     </view>
                     <connections>
-                        <outlet property="tableView" destination="Al4-d9-pDC" id="Mcw-0Z-LDF"/>
+                        <outlet property="allTableView" destination="Al4-d9-pDC" id="Mcw-0Z-LDF"/>
+                        <outlet property="deviceTableView" destination="Qph-26-MKg" id="erL-9v-xqt"/>
                     </connections>
                 </viewController>
                 <placeholder placeholderIdentifier="IBFirstResponder" id="dkx-z0-nzr" sceneMemberID="firstResponder"/>
