@@ -11,7 +11,7 @@ import CoreBluetooth
 import RxSwift
 import RxRelay
 
-public class BleDevice: NSObject, CBPeripheralDelegate {
+open class BleDevice: NSObject, CBPeripheralDelegate {
 
     public enum ConnectionState : String {
         case CONNECTING = "CONNECTING"
@@ -107,7 +107,7 @@ public class BleDevice: NSObject, CBPeripheralDelegate {
         return discoverSubject.ignoreElements()
     }
 
-    required init(_ peripheral: CBPeripheral) {
+    public required init(_ peripheral: CBPeripheral) {
         self.peripheral = peripheral
         super.init()
         
