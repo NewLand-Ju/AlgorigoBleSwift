@@ -11,7 +11,7 @@ import CoreBluetooth
 import RxSwift
 import RxRelay
 
-open class BleDevice: NSObject, CBPeripheralDelegate {
+open class BleDevice: NSObject {
 
     public enum ConnectionState : String {
         case CONNECTING = "CONNECTING"
@@ -85,7 +85,7 @@ open class BleDevice: NSObject, CBPeripheralDelegate {
     }
     
     public fileprivate(set) var connectionStateRelay = BehaviorRelay<ConnectionState>(value: ConnectionState.DISCONNECTED)
-    public fileprivate(set) var connectionState: ConnectionState = .DISCONNECTED {
+    public internal(set) var connectionState: ConnectionState = .DISCONNECTED {
         didSet {
             if (connectionState == .DISCONNECTED) {
                 discoverSubject = PublishSubject<Any>()
@@ -153,7 +153,7 @@ open class BleDevice: NSObject, CBPeripheralDelegate {
         peripheral.discoverServices(nil)
     }
     
-    func onDisconnected() {
+    open func onDisconnected() {
         connectionState = .DISCONNECTED
     }
     
@@ -306,7 +306,8 @@ open class BleDevice: NSObject, CBPeripheralDelegate {
                     throw DisconnectedError()
                 }
             })
-            .ignoreElements()
+            .firstOrError()
+            .asCompletable()
     }
     
     fileprivate func getCharacteristic(uuid: String) -> Single<CBCharacteristic> {
@@ -329,7 +330,9 @@ open class BleDevice: NSObject, CBPeripheralDelegate {
     fileprivate func setCharacteristicNotificationInner(characteristic: CBCharacteristic, data: Bool) {
         peripheral.setNotifyValue(data, for: characteristic)
     }
-    
+}
+
+extension BleDevice: CBPeripheralDelegate {
     //CBPeripheralDelegate Override Methods
     public func peripheral(_ peripheral: CBPeripheral, didDiscoverServices error: Error?) {
         discoverSubject.onCompleted()
