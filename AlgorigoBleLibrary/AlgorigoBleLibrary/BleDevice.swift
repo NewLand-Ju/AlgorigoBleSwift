@@ -142,7 +142,7 @@ open class BleDevice: NSObject {
                 self.connectionState = .DISCONNECTING
             })
             .subscribe(onCompleted: {
-                self.connectionState = .DISCONNECTED
+                self.onDisconnected()
             }, onError: { (error) in
                 print("disconnectDevice onError:\(error)")
             })
