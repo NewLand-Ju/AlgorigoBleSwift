@@ -48,8 +48,6 @@ public class BluetoothManager : NSObject, CBCentralManagerDelegate {
     
     public static let instance = BluetoothManager()
     
-    private static let service = CBUUID(string: "F000AA20-0451-4000-B000-000000000000")
-    
     fileprivate var manager: CBCentralManager! = nil
     fileprivate var deviceDic = [CBPeripheral: BleDevice]()
     public var bleDeviceDelegate: BleDeviceDelegate = DefaultBleDeviceDelegate()
