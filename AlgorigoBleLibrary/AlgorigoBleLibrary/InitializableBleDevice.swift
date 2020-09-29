@@ -49,7 +49,6 @@ open class InitializableBleDevice: BleDevice {
             self?.initialzeCompletable() ?? Completable.never()
         }
         .do(onCompleted: { [weak self] in
-            print("getInitialize onCompleted")
             self?.connectionState = .CONNECTED
             self?.initialized = true
         })
