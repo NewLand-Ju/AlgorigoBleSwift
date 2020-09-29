@@ -142,9 +142,9 @@ open class BleDevice: NSObject {
                 self.connectionState = .DISCONNECTING
             })
             .subscribe(onCompleted: {
-                self.connectionState = .DISCONNECTED
+                self.onDisconnected()
             }, onError: { (error) in
-                print("disconnectDevice onError:\(error)")
+                debugPrint("disconnectDevice onError:\(error)")
             })
     }
     
@@ -292,7 +292,7 @@ open class BleDevice: NSObject {
             })
             .subscribe(onCompleted: {
             }, onError: { (error) in
-                print("getCharacteristic onError \(error)")
+                debugPrint("getCharacteristic onError \(error)")
             })
     }
     
@@ -337,7 +337,7 @@ extension BleDevice: CBPeripheralDelegate {
     public func peripheral(_ peripheral: CBPeripheral, didDiscoverServices error: Error?) {
         discoverSubject.onCompleted()
         if error != nil {
-            print("error : peripheral didDiscoverServices: \(peripheral.name ?? peripheral.identifier.uuidString), error: \(error.debugDescription)")
+            debugPrint("error : peripheral didDiscoverServices: \(peripheral.name ?? peripheral.identifier.uuidString), error: \(error.debugDescription)")
         } else {
             self.peripheral = peripheral
             for service in peripheral.services! {

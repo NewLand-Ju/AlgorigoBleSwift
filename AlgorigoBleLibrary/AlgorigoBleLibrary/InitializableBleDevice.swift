@@ -41,6 +41,7 @@ open class InitializableBleDevice: BleDevice {
     
     public override func connect() -> Completable {
         super.connect()
+            .delay(RxTimeInterval.milliseconds(100), scheduler: ConcurrentDispatchQueueScheduler.init(qos: .background))
             .concat(getInitialize())
     }
     
@@ -49,9 +50,8 @@ open class InitializableBleDevice: BleDevice {
             self?.initialzeCompletable() ?? Completable.never()
         }
         .do(onCompleted: { [weak self] in
-            print("getInitialize onCompleted")
-            self?.connectionState = .CONNECTED
             self?.initialized = true
+            self?.connectionState = .CONNECTED
         })
     }
     
