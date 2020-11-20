@@ -158,7 +158,7 @@ public class BluetoothManager : NSObject, CBCentralManagerDelegate {
         let device = bleDeviceDelegate.createBleDeviceOuter(peripheral: peripheral)
         if let _device = device {
             deviceDic[peripheral] = _device
-            _device.connectionStateRelay
+            _device.connectionStateSubject
                 .subscribe { [weak self] (event) in
                     switch event {
                     case .next(let state):
