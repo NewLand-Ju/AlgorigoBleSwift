@@ -84,13 +84,13 @@ open class BleDevice: NSObject {
         }
     }
     
-    public fileprivate(set) var connectionStateRelay = BehaviorRelay<ConnectionState>(value: ConnectionState.DISCONNECTED)
+    public fileprivate(set) var connectionStateSubject = ReplaySubject<ConnectionState>.create(bufferSize: 1)
     public internal(set) var connectionState: ConnectionState = .DISCONNECTED {
         didSet {
             if (connectionState == .DISCONNECTED) {
                 discoverSubject = PublishSubject<Any>()
             }
-            connectionStateRelay.accept(connectionState)
+            connectionStateSubject.onNext(connectionState)
         }
     }
     public var connected: Bool {
@@ -297,7 +297,7 @@ open class BleDevice: NSObject {
     }
     
     fileprivate func getConnectedCompletable() -> Completable {
-        return connectionStateRelay
+        return connectionStateSubject
             .filter { (connectionState) -> Bool in
                 connectionState != .CONNECTING && connectionState != .DISCOVERING
             }
