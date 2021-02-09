@@ -14,8 +14,6 @@ import RxRelay
 
 public protocol BleDeviceDelegate {
     func createBleDevice(peripheral: CBPeripheral) -> BleDevice?
-//    func getBleScanSetting() -> BleScanSetting
-//    func getBleScanFilters() -> [BleScanFilter]
 }
 extension BleDeviceDelegate {
     func createBleDeviceOuter(peripheral: CBPeripheral) -> BleDevice? {
