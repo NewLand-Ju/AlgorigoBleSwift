@@ -116,7 +116,7 @@ class ViewController: UIViewController {
     }
 }
 
-extension ViewController : UITableViewDataSource {
+extension ViewController : UITableViewDataSource, UITableViewDelegate {
     func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
         switch tableView.restorationIdentifier {
         case "all":
@@ -140,6 +140,27 @@ extension ViewController : UITableViewDataSource {
             break
         }
         return cell
+    }
+    
+    func tableView(_ tableView: UITableView, trailingSwipeActionsConfigurationForRowAt indexPath: IndexPath) -> UISwipeActionsConfiguration? {
+        let addAction = UIContextualAction(style: .normal, title: "추가", handler: { [weak self] (ac:UIContextualAction, view:UIView, success:(Bool) -> Void) in
+            switch tableView.restorationIdentifier {
+            case "all":
+                if let uuidStr = self?.devicesAll[indexPath.row].getIdentifier(),
+                   let uuid = UUID(uuidString: uuidStr) {
+                    _ = RetrieveViewController.appendToUserDefault(uuid: uuid)
+                }
+            case "device":
+                if let uuidStr = self?.devicesDevice[indexPath.row].getIdentifier(),
+                   let uuid = UUID(uuidString: uuidStr) {
+                    _ = RetrieveViewController.appendToUserDefault(uuid: uuid)
+                }
+            default:
+                break
+            }
+            success(true)
+        })
+        return UISwipeActionsConfiguration(actions: [addAction])
     }
 }
 
