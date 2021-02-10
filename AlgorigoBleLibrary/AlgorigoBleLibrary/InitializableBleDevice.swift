@@ -39,8 +39,8 @@ open class InitializableBleDevice: BleDevice {
         }
     }
     
-    public override func connect() -> Completable {
-        super.connect()
+    public override func connect(autoConnect: Bool = false) -> Completable {
+        super.connect(autoConnect: autoConnect)
             .delay(RxTimeInterval.milliseconds(100), scheduler: ConcurrentDispatchQueueScheduler.init(qos: .background))
             .concat(getInitialize())
     }
@@ -58,6 +58,12 @@ open class InitializableBleDevice: BleDevice {
     //Abstract
     open func initialzeCompletable() -> Completable {
         fatalError("Subsclasses need to implement the 'scannedIdentifier' method.")
+    }
+    
+    override func reconnectCompletable() -> Completable {
+        super.reconnectCompletable()
+            .delay(RxTimeInterval.milliseconds(100), scheduler: ConcurrentDispatchQueueScheduler.init(qos: .background))
+            .andThen(getInitialize())
     }
     
     open override func onDisconnected() {

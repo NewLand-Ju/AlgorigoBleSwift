@@ -14,8 +14,6 @@ import RxRelay
 
 public protocol BleDeviceDelegate {
     func createBleDevice(peripheral: CBPeripheral) -> BleDevice?
-//    func getBleScanSetting() -> BleScanSetting
-//    func getBleScanFilters() -> [BleScanFilter]
 }
 extension BleDeviceDelegate {
     func createBleDeviceOuter(peripheral: CBPeripheral) -> BleDevice? {
@@ -56,6 +54,7 @@ public class BluetoothManager : NSObject, CBCentralManagerDelegate {
     fileprivate var scanSubjects = [([String]?, PublishSubject<CBPeripheral>)]()
     fileprivate var connectSubjects = [CBPeripheral: PublishSubject<Bool>]()
     fileprivate var disconnectSubjects = [CBPeripheral: PublishSubject<Bool>]()
+    fileprivate var reconnectUUIDs = [UUID]()
     fileprivate var disposeBag = DisposeBag()
     
     override private init() {
@@ -99,7 +98,7 @@ public class BluetoothManager : NSObject, CBCentralManagerDelegate {
         return checkBluetoothStatus()
             .andThen(Observable.deferred({ [unowned self] () -> Observable<CBPeripheral> in
                 let publishSubject = PublishSubject<CBPeripheral>()
-                scanSubjects.append((services, publishSubject))
+                self.scanSubjects.append((services, publishSubject))
                 let services = services?.map({ (uuidStr) -> CBUUID? in
                     CBUUID(string: uuidStr)
                 }).compactMap({ $0 })
@@ -124,6 +123,30 @@ public class BluetoothManager : NSObject, CBCentralManagerDelegate {
                         }
                     })
             }))
+    }
+    
+    public func retrieveDevice(identifiers: [UUID]) -> Single<[BleDevice]> {
+        return retrieveDeviceInner(identifiers: identifiers)
+                .map { [unowned self] (peripherals) -> [BleDevice] in
+                    return peripherals
+                        .map { [unowned self] (peripheral) -> BleDevice? in
+                            self.onBluetoothDeviceFound(peripheral)
+                        }
+                        .filter { (device) -> Bool in
+                            device != nil
+                        }
+                        .map { (device) -> BleDevice in
+                            device!
+                        }
+                }
+    }
+    
+    private func retrieveDeviceInner(identifiers: [UUID]) -> Single<[CBPeripheral]> {
+        return checkBluetoothStatus()
+            .andThen(Single<[CBPeripheral]>.deferred { [unowned self] () -> Single<[CBPeripheral]> in
+                let devices = self.manager.retrievePeripherals(withIdentifiers: identifiers)
+                return Single.just(devices)
+            })
     }
     
     fileprivate func checkBluetoothStatus() -> Completable {
@@ -186,7 +209,7 @@ public class BluetoothManager : NSObject, CBCentralManagerDelegate {
         return connectionStateSubject
     }
     
-    func connectDevice(peripheral: CBPeripheral) -> Completable {
+    func connectDevice(peripheral: CBPeripheral, autoConnect: Bool = false) -> Completable {
         return checkBluetoothStatus()
             .andThen(Completable.deferred({ () -> PrimitiveSequence<CompletableTrait, Never> in
                 if let subject = self.connectSubjects[peripheral] {
@@ -197,7 +220,12 @@ public class BluetoothManager : NSObject, CBCentralManagerDelegate {
                     self.connectSubjects[peripheral] = subject
                     return subject
                         .ignoreElements()
-                        .do(onSubscribe: {
+                        .do(onCompleted: {
+                            if autoConnect,
+                               !self.reconnectUUIDs.contains(peripheral.identifier) {
+                                self.reconnectUUIDs.append(peripheral.identifier)
+                            }
+                        }, onSubscribe: {
                             self.manager.connect(peripheral, options: nil)
                         }, onDispose: {
                             self.connectSubjects.removeValue(forKey: peripheral)
@@ -217,6 +245,11 @@ public class BluetoothManager : NSObject, CBCentralManagerDelegate {
                 return subject
                     .ignoreElements()
                     .do(onSubscribe: {
+                        if let index = self.reconnectUUIDs.firstIndex(where: { (uuid) -> Bool in
+                            peripheral.identifier == uuid
+                        }) {
+                            self.reconnectUUIDs.remove(at: index)
+                        }
                         self.manager.cancelPeripheralConnection(peripheral)
                     }, onDispose: {
                         self.disconnectSubjects.removeValue(forKey: peripheral)
@@ -237,6 +270,8 @@ public class BluetoothManager : NSObject, CBCentralManagerDelegate {
     public func centralManager(_ central: CBCentralManager, didConnect peripheral: CBPeripheral) {
         if let subject = connectSubjects[peripheral] {
             subject.on(.completed)
+        } else if let device = deviceDic[peripheral] {
+            device.onReconnected()
         }
     }
     
@@ -251,7 +286,9 @@ public class BluetoothManager : NSObject, CBCentralManagerDelegate {
             subject.on(.completed)
         } else if let device = deviceDic[peripheral] {
             device.onDisconnected()
-            connectionStateSubject.onNext((bleDevice: device, connectionState: BleDevice.ConnectionState.DISCONNECTED))
+            if reconnectUUIDs.contains(peripheral.identifier) {
+                manager.connect(peripheral, options: nil)
+            }
         }
     }
 }
