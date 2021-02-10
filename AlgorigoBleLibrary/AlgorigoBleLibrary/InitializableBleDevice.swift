@@ -60,6 +60,12 @@ open class InitializableBleDevice: BleDevice {
         fatalError("Subsclasses need to implement the 'scannedIdentifier' method.")
     }
     
+    override func reconnectCompletable() -> Completable {
+        super.reconnectCompletable()
+            .delay(RxTimeInterval.milliseconds(100), scheduler: ConcurrentDispatchQueueScheduler.init(qos: .background))
+            .andThen(getInitialize())
+    }
+    
     open override func onDisconnected() {
         super.onDisconnected()
         initialized = false

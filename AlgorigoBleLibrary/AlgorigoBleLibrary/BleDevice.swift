@@ -153,7 +153,36 @@ open class BleDevice: NSObject {
         peripheral.discoverServices(nil)
     }
     
+    func reconnectCompletable() -> Completable {
+        var dispose = true
+        return discoverCompletable.do(onSubscribe: {
+            self.discover()
+        })
+        .do( onError: { (error) in
+            dispose = false
+            self.connectionState = .DISCONNECTED
+        }, onCompleted: {
+            dispose = false
+            self.connectionState = .CONNECTED
+        }, onSubscribe: {
+            self.connectionState = .CONNECTING
+        }, onSubscribed: {
+        }, onDispose: {
+            if dispose {
+                self.disconnect()
+            }
+        })
+    }
+    
+    func onReconnected() {
+        _ = reconnectCompletable()
+            .subscribe { (event) in
+//                print("onReconnected \(event)")
+            }
+    }
+    
     open func onDisconnected() {
+        discoverSubject = PublishSubject<Any>()
         connectionState = .DISCONNECTED
     }
     
