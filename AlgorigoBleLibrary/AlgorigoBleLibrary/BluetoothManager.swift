@@ -125,7 +125,7 @@ public class BluetoothManager : NSObject, CBCentralManagerDelegate {
             }))
     }
     
-    public func retrieveDevice(identifiers: [UUID]) -> Observable<[BleDevice]> {
+    public func retrieveDevice(identifiers: [UUID]) -> Single<[BleDevice]> {
         return retrieveDeviceInner(identifiers: identifiers)
                 .map { [unowned self] (peripherals) -> [BleDevice] in
                     return peripherals
@@ -141,11 +141,11 @@ public class BluetoothManager : NSObject, CBCentralManagerDelegate {
                 }
     }
     
-    private func retrieveDeviceInner(identifiers: [UUID]) -> Observable<[CBPeripheral]> {
+    private func retrieveDeviceInner(identifiers: [UUID]) -> Single<[CBPeripheral]> {
         return checkBluetoothStatus()
-            .andThen(Observable<[CBPeripheral]>.deferred { [unowned self] () -> Observable<[CBPeripheral]> in
+            .andThen(Single<[CBPeripheral]>.deferred { [unowned self] () -> Single<[CBPeripheral]> in
                 let devices = self.manager.retrievePeripherals(withIdentifiers: identifiers)
-                return Observable.just(devices)
+                return Single.just(devices)
             })
     }
     

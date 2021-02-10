@@ -98,12 +98,10 @@ class RetrieveViewController: UIViewController {
             .observeOn(MainScheduler.instance)
             .subscribe { [weak self] (event) in
                 switch event {
-                case .next(let devices):
+                case .success(let devices):
                     print("next:\(devices)")
                     self?.devicesDevice = devices
                     self?.deviceTableView.reloadData()
-                case .completed:
-                    print("completed")
                 case .error(let error):
                     print("error:\(error)")
                 }
