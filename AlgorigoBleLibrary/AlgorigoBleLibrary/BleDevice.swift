@@ -114,9 +114,9 @@ open class BleDevice: NSObject {
         peripheral.delegate = self
     }
     
-    public func connect() -> Completable {
+    public func connect(autoConnect: Bool = false) -> Completable {
         var dispose = true
-        return BluetoothManager.instance.connectDevice(peripheral: peripheral)
+        return BluetoothManager.instance.connectDevice(peripheral: peripheral, autoConnect: autoConnect)
             .concat(discoverCompletable.do(onSubscribe: {
                 self.discover()
             }))

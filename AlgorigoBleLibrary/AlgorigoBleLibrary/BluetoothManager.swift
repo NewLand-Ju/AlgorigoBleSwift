@@ -221,7 +221,8 @@ public class BluetoothManager : NSObject, CBCentralManagerDelegate {
                     return subject
                         .ignoreElements()
                         .do(onCompleted: {
-                            if !self.reconnectUUIDs.contains(peripheral.identifier) {
+                            if autoConnect,
+                               !self.reconnectUUIDs.contains(peripheral.identifier) {
                                 self.reconnectUUIDs.append(peripheral.identifier)
                             }
                         }, onSubscribe: {

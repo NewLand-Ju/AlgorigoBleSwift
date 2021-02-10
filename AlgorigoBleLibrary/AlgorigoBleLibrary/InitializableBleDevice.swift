@@ -39,8 +39,8 @@ open class InitializableBleDevice: BleDevice {
         }
     }
     
-    public override func connect() -> Completable {
-        super.connect()
+    public override func connect(autoConnect: Bool = false) -> Completable {
+        super.connect(autoConnect: autoConnect)
             .delay(RxTimeInterval.milliseconds(100), scheduler: ConcurrentDispatchQueueScheduler.init(qos: .background))
             .concat(getInitialize())
     }
