@@ -84,7 +84,10 @@ open class BleDevice: NSObject {
         }
     }
     
-    public fileprivate(set) var connectionStateSubject = ReplaySubject<ConnectionState>.create(bufferSize: 1)
+    var connectionStateSubject = ReplaySubject<ConnectionState>.create(bufferSize: 1)
+    public var connectionStateObservable: Observable<ConnectionState> {
+        connectionStateSubject.asObserver()
+    }
     public internal(set) var connectionState: ConnectionState = .DISCONNECTED {
         didSet {
             if (connectionState == .DISCONNECTED) {
@@ -120,7 +123,7 @@ open class BleDevice: NSObject {
             .concat(discoverCompletable.do(onSubscribe: {
                 self.discover()
             }))
-            .do( onError: { (error) in
+            .do(onError: { (error) in
                 dispose = false
                 self.connectionState = .DISCONNECTED
             }, onCompleted: {
@@ -153,12 +156,19 @@ open class BleDevice: NSObject {
         peripheral.discoverServices(nil)
     }
     
+    func onReconnected() {
+        _ = reconnectCompletable()
+            .subscribe { (event) in
+//                print("onReconnected \(event)")
+            }
+    }
+    
     func reconnectCompletable() -> Completable {
         var dispose = true
         return discoverCompletable.do(onSubscribe: {
             self.discover()
         })
-        .do( onError: { (error) in
+        .do(onError: { (error) in
             dispose = false
             self.connectionState = .DISCONNECTED
         }, onCompleted: {
@@ -172,13 +182,6 @@ open class BleDevice: NSObject {
                 self.disconnect()
             }
         })
-    }
-    
-    func onReconnected() {
-        _ = reconnectCompletable()
-            .subscribe { (event) in
-//                print("onReconnected \(event)")
-            }
     }
     
     open func onDisconnected() {
