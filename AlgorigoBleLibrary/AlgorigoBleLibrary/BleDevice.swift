@@ -92,6 +92,9 @@ open class BleDevice: NSObject {
         didSet {
             if (connectionState == .DISCONNECTED) {
                 discoverSubject = PublishSubject<Any>()
+                notificationObservableDic.values.forEach { (tuple) in
+                    tuple.subject.onError(DisconnectedError())
+                }
             }
             connectionStateSubject.onNext(connectionState)
         }
