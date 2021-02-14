@@ -1,3 +1,3 @@
 public class AlgorigoBleLibrary {
-    public static let version = "0.0.7"
+    public static let version = "0.0.8"
 }
