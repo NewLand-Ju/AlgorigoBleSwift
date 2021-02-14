@@ -20,6 +20,12 @@ open class InitializableBleDevice: BleDevice {
         super.init(peripheral)
     }
     
+    public override var connectionStateObservable: Observable<BleDevice.ConnectionState> {
+        return super.connectionStateObservable
+            .filter { [weak self] (connectionState) -> Bool in
+                connectionState != .CONNECTED || (self?.initialized ?? false)
+            }
+    }
     public override var connectionState: BleDevice.ConnectionState {
         get {
             if super.connectionState == .CONNECTED && !initialized {
