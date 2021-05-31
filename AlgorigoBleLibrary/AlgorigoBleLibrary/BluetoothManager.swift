@@ -234,6 +234,12 @@ public class BluetoothManager : NSObject, CBCentralManagerDelegate {
             }))
     }
     
+    func getReconnectFlag(peripheral: CBPeripheral) -> Bool {
+        return reconnectUUIDs.contains { uuid in
+            peripheral.identifier == uuid
+        }
+    }
+    
     func disconnectDevice(peripheral: CBPeripheral) -> Completable {
         return Completable.deferred { () -> PrimitiveSequence<CompletableTrait, Never> in
             if let subject = self.disconnectSubjects[peripheral] {

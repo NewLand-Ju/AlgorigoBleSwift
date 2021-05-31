@@ -142,15 +142,39 @@ open class BleDevice: NSObject {
             })
     }
     
+    public func reconnect() -> Completable {
+        return Single<Bool>.deferred { [weak self] in
+            if let this = self {
+                return Single.just(BluetoothManager.instance.getReconnectFlag(peripheral: this.peripheral))
+            } else {
+                return Single.error(RxError.noElements)
+            }
+        }.flatMapCompletable { [weak self] autoConnect in
+            if let this = self {
+                return this.disconnectCompletable()
+                    .andThen(this.connect(autoConnect: autoConnect))
+            } else {
+                return Completable.error(RxError.noElements)
+            }
+        }
+    }
+    
     public func disconnect() {
-        _ = BluetoothManager.instance.disconnectDevice(peripheral: peripheral)
+        _ = disconnectCompletable()
+            .subscribe(onCompleted: {
+                
+            }, onError: { (error) in
+                debugPrint("disconnectDevice onError:\(error)")
+            })
+    }
+    
+    fileprivate func disconnectCompletable() -> Completable {
+        return BluetoothManager.instance.disconnectDevice(peripheral: peripheral)
             .do(onSubscribe: {
                 self.connectionState = .DISCONNECTING
             })
-            .subscribe(onCompleted: {
+            .do(onCompleted: {
                 self.onDisconnected()
-            }, onError: { (error) in
-                debugPrint("disconnectDevice onError:\(error)")
             })
     }
     
