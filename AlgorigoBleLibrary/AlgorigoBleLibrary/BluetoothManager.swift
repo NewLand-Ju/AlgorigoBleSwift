@@ -91,7 +91,7 @@ public class BluetoothManager : NSObject, CBCentralManagerDelegate {
     
     public func scanDevice(withServices services: [String]? = nil, intervalSec: Int) -> Observable<[BleDevice]> {
         return scanDevice(withServices: services)
-        .takeUntil(Observable<Int>.timer(DispatchTimeInterval.seconds(intervalSec), scheduler: ConcurrentDispatchQueueScheduler(qos: .background)))
+            .take(until: Observable<Int>.timer(DispatchTimeInterval.seconds(intervalSec), scheduler: ConcurrentDispatchQueueScheduler(qos: .background)))
     }
     
     private func scanDeviceInner(withServices services: [String]? = nil) -> Observable<CBPeripheral> {
@@ -215,11 +215,13 @@ public class BluetoothManager : NSObject, CBCentralManagerDelegate {
                 if let subject = self.connectSubjects[peripheral] {
                     return subject
                         .ignoreElements()
+                        .asCompletable()
                 } else {
                     let subject = PublishSubject<Bool>()
                     self.connectSubjects[peripheral] = subject
                     return subject
                         .ignoreElements()
+                        .asCompletable()
                         .do(onCompleted: {
                             if autoConnect,
                                !self.reconnectUUIDs.contains(peripheral.identifier) {
@@ -245,11 +247,13 @@ public class BluetoothManager : NSObject, CBCentralManagerDelegate {
             if let subject = self.disconnectSubjects[peripheral] {
                 return subject
                     .ignoreElements()
+                    .asCompletable()
             } else {
                 let subject = PublishSubject<Bool>()
                 self.disconnectSubjects[peripheral] = subject
                 return subject
                     .ignoreElements()
+                    .asCompletable()
                     .do(onSubscribe: {
                         if let index = self.reconnectUUIDs.firstIndex(where: { (uuid) -> Bool in
                             peripheral.identifier == uuid

@@ -61,7 +61,7 @@ class RetrieveViewController: UIViewController {
         }
         
         BluetoothManager.instance.getConnectionStateObservable()
-            .observeOn(MainScheduler.instance)
+            .observe(on: MainScheduler.instance)
             .subscribe { [weak self] (event) in
                 switch event {
                 case .next(let status):
@@ -95,14 +95,14 @@ class RetrieveViewController: UIViewController {
     
     @IBAction func handleRetrieve(_ sender: Any) {
         BluetoothManager.instance.retrieveDevice(identifiers: retrievePool)
-            .observeOn(MainScheduler.instance)
+            .observe(on: MainScheduler.instance)
             .subscribe { [weak self] (event) in
                 switch event {
                 case .success(let devices):
                     print("next:\(devices)")
                     self?.devicesDevice = devices
                     self?.deviceTableView.reloadData()
-                case .error(let error):
+                case .failure(let error):
                     print("error:\(error)")
                 }
             }
@@ -168,8 +168,8 @@ extension RetrieveViewController: DeviceTableViewCellDelegate {
             self.deviceTableView.reloadData()
         case .DISCONNECTED:
             _ = device.connect(autoConnect: true)
-                .subscribeOn(ConcurrentDispatchQueueScheduler(qos: .background))
-                .observeOn(MainScheduler.instance)
+                .subscribe(on: ConcurrentDispatchQueueScheduler(qos: .background))
+                .observe(on: MainScheduler.instance)
                 .subscribe(onCompleted: {
                     print("connect onCompleted")
                 }, onError: { (error) in

@@ -37,7 +37,7 @@ class ViewController: UIViewController {
         self.deviceTableView.register(nibName, forCellReuseIdentifier: "deviceCell")
         
         BluetoothManager.instance.getConnectionStateObservable()
-            .observeOn(MainScheduler.instance)
+            .observe(on: MainScheduler.instance)
             .subscribe { [weak self] (event) in
                 switch event {
                 case .next(let status):
@@ -70,8 +70,8 @@ class ViewController: UIViewController {
     private func startScan() {
         if disposableAll == nil {
             disposableAll = BluetoothManager.instance.scanDevice()
-                .subscribeOn(ConcurrentDispatchQueueScheduler(qos: .background))
-                .observeOn(MainScheduler.instance)
+                .subscribe(on: ConcurrentDispatchQueueScheduler(qos: .background))
+                .observe(on: MainScheduler.instance)
                 .do(onSubscribe: { [weak self] in
                     self?.devicesAll = []
                     self?.allTableView.reloadData()
@@ -94,8 +94,8 @@ class ViewController: UIViewController {
     private func startScanWithServices() {
         if disposableDevice == nil {
             disposableDevice = BluetoothManager.instance.scanDevice(withServices: [ViewController.UUID_SERVICE])
-                .subscribeOn(ConcurrentDispatchQueueScheduler(qos: .background))
-                .observeOn(MainScheduler.instance)
+                .subscribe(on: ConcurrentDispatchQueueScheduler(qos: .background))
+                .observe(on: MainScheduler.instance)
                 .do(onSubscribe: { [weak self] in
                     self?.devicesDevice = []
                     self?.deviceTableView.reloadData()
@@ -172,8 +172,8 @@ extension ViewController : DeviceTableViewCellDelegate {
             self.allTableView.reloadData()
         case .DISCONNECTED:
             _ = device.connect(autoConnect: false)
-                .subscribeOn(ConcurrentDispatchQueueScheduler(qos: .background))
-                .observeOn(MainScheduler.instance)
+                .subscribe(on: ConcurrentDispatchQueueScheduler(qos: .background))
+                .observe(on: MainScheduler.instance)
                 .subscribe(onCompleted: {
                     print("connect onCompleted")
                 }, onError: { (error) in

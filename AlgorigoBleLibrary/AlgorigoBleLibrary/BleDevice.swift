@@ -110,7 +110,7 @@ open class BleDevice: NSObject {
     fileprivate var notificationDic = [String: PublishSubject<Data>]()
     fileprivate var discoverSubject = PublishSubject<Any>()
     fileprivate var discoverCompletable: Completable {
-        return discoverSubject.ignoreElements()
+        return discoverSubject.ignoreElements().asCompletable()
     }
 
     public required init(_ peripheral: CBPeripheral) {
@@ -292,7 +292,7 @@ open class BleDevice: NSObject {
             }
             .subscribe(onSuccess: { (data) in
                 subject.on(.next(data))
-            }, onError: { (error) in
+            }, onFailure: { (error) in
                 subject.on(.error(error))
             })
     }
@@ -316,7 +316,7 @@ open class BleDevice: NSObject {
             }
             .subscribe(onSuccess: { (data) in
                 subject.on(.next(data))
-            }, onError: { (error) in
+            }, onFailure: { (error) in
                 subject.on(.error(error))
             })
     }
@@ -374,7 +374,7 @@ open class BleDevice: NSObject {
             .filter({ (characteristic) -> Bool in
                 characteristic.uuid.uuidString == uuid
             })
-            .take(DispatchTimeInterval.seconds(1), scheduler: ConcurrentDispatchQueueScheduler(qos: .background))
+            .take(for: DispatchTimeInterval.seconds(1), scheduler: ConcurrentDispatchQueueScheduler(qos: .background))
             .firstOrError()
     }
     
