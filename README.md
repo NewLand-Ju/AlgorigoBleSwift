@@ -1,3 +1,3 @@
 # AlgorigoBleLibrary
 
-version name : 0.0.1
+version name : 0.2.0
