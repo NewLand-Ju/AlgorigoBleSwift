@@ -18,7 +18,7 @@ spec.swift_version = '5.1'
 spec.source       = { :git => "https://github.com/Algorigo/AlgorigoBleSwift.git", :tag => "#{spec.version}" }
 spec.source_files  = "AlgorigoBleLibrary/AlgorigoBleLibrary/*.swift"
 
-spec.dependency 'RxSwift', '~> 6.2.0'
-spec.dependency 'RxRelay', '~> 6.2.0'
+spec.dependency 'RxSwift', '~> 6.5.0'
+spec.dependency 'RxRelay', '~> 6.5.0'
 
 end
