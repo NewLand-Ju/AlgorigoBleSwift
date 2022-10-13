@@ -72,7 +72,9 @@ open class BleDevice: NSObject {
         if (pushQueue.value.count > 0) {
             pushing.value = true
             let pushData = pushQueue.value.first!
-            pushQueue.value.remove(at: 0)
+            pushQueue.mutate({ pushData in
+                pushData.remove(at: 0)
+            })
             switch pushData {
             case .ReadCharacteristicData(let bleDevice, let subject, let uuid):
                 bleDevice.processReadCharacteristicData(subject: subject, characteristicUuid: uuid)
@@ -228,7 +230,9 @@ open class BleDevice: NSObject {
         let subject = ReplaySubject<Data>.create(bufferSize: 1)
         return subject
             .do(onSubscribe: {
-                BleDevice.pushQueue.value.append(.ReadCharacteristicData(bleDevice: self, subject: subject, characteristicUuid: uuid))
+                BleDevice.pushQueue.mutate({ pushData in
+                    pushData.append(.ReadCharacteristicData(bleDevice: self, subject: subject, characteristicUuid: uuid))
+                })
                 BleDevice.pushStart()
             }, onDispose: {
                 BleDevice.doPush()
@@ -240,7 +244,9 @@ open class BleDevice: NSObject {
         let subject = ReplaySubject<Data>.create(bufferSize: 1)
         return subject
             .do(onSubscribe: {
-                BleDevice.pushQueue.value.append(.WriteCharacteristicData(bleDevice: self, subject: subject, characteristicUuid: uuid, data: data))
+                BleDevice.pushQueue.mutate({ pushData in
+                    pushData.append(.WriteCharacteristicData(bleDevice: self, subject: subject, characteristicUuid: uuid, data: data))
+                })
                 BleDevice.pushStart()
             }, onDispose: {
                 BleDevice.doPush()
