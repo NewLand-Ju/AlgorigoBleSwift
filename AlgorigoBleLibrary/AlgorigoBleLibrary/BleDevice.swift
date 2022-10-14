@@ -75,7 +75,7 @@ open class BleDevice: NSObject {
         }
     }
     static func doPush() {
-        if let pushData = pushQueue.acquire({ pushs in
+        if let pushData = pushQueue.acquire({ pushs -> PushData? in
             if (pushs.count > 0) {
                 return pushs.removeFirst()
             } else {
