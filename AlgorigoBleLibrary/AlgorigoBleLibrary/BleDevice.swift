@@ -51,6 +51,12 @@ open class BleDevice: NSObject {
                 }
             }
         }
+        
+        func acquire<S>(_ transform: (inout T) -> S) -> S {
+            return queue.sync {
+                return transform(&self.storedValue)
+            }
+        }
 
         // 올바른 방법
         func mutate(_ transform: (inout T) -> ()) {
@@ -64,17 +70,19 @@ open class BleDevice: NSObject {
     static var pushing = AtomicValue<Bool>(false)
     static let dispatchQueue = DispatchQueue(label: "BleDevice")
     static func pushStart() {
-        dispatchQueue.sync {
+        if !pushing.value {
             doPush()
         }
     }
     static func doPush() {
-        if (pushQueue.value.count > 0) {
+        if let pushData = pushQueue.acquire({ pushs in
+            if (pushs.count > 0) {
+                return pushs.removeFirst()
+            } else {
+                return nil
+            }
+        }) {
             pushing.value = true
-            let pushData = pushQueue.value.first!
-            pushQueue.mutate({ pushData in
-                pushData.remove(at: 0)
-            })
             switch pushData {
             case .ReadCharacteristicData(let bleDevice, let subject, let uuid):
                 bleDevice.processReadCharacteristicData(subject: subject, characteristicUuid: uuid)
