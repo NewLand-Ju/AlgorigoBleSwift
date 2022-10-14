@@ -51,6 +51,12 @@ open class BleDevice: NSObject {
                 }
             }
         }
+        
+        func acquire<S>(_ transform: (inout T) -> S) -> S {
+            return queue.sync {
+                return transform(&self.storedValue)
+            }
+        }
 
         // 올바른 방법
         func mutate(_ transform: (inout T) -> ()) {
@@ -64,15 +70,19 @@ open class BleDevice: NSObject {
     static var pushing = AtomicValue<Bool>(false)
     static let dispatchQueue = DispatchQueue(label: "BleDevice")
     static func pushStart() {
-        dispatchQueue.sync {
+        if !pushing.value {
             doPush()
         }
     }
     static func doPush() {
-        if (pushQueue.value.count > 0) {
+        if let pushData = pushQueue.acquire({ pushs in
+            if (pushs.count > 0) {
+                return pushs.removeFirst()
+            } else {
+                return nil
+            }
+        }) {
             pushing.value = true
-            let pushData = pushQueue.value.first!
-            pushQueue.value.remove(at: 0)
             switch pushData {
             case .ReadCharacteristicData(let bleDevice, let subject, let uuid):
                 bleDevice.processReadCharacteristicData(subject: subject, characteristicUuid: uuid)
@@ -105,7 +115,7 @@ open class BleDevice: NSObject {
     fileprivate var disposable: Disposable! = nil
     fileprivate var peripheral: CBPeripheral! = nil
     fileprivate let characteristicSubject = ReplaySubject<CBCharacteristic>.createUnbounded()
-    fileprivate var characteristicDic = [String: (subject: ReplaySubject<Data>, data: Data)]()
+    fileprivate var characteristicDic = AtomicValue([String: (subject: ReplaySubject<Data>, data: Data)]())
     fileprivate var notificationObservableDic = [String: (observable: Observable<Observable<Data>>, subject: ReplaySubject<Observable<Data>>)]()
     fileprivate var notificationDic = [String: PublishSubject<Data>]()
     fileprivate var discoverSubject = PublishSubject<Any>()
@@ -228,7 +238,9 @@ open class BleDevice: NSObject {
         let subject = ReplaySubject<Data>.create(bufferSize: 1)
         return subject
             .do(onSubscribe: {
-                BleDevice.pushQueue.value.append(.ReadCharacteristicData(bleDevice: self, subject: subject, characteristicUuid: uuid))
+                BleDevice.pushQueue.mutate({ pushData in
+                    pushData.append(.ReadCharacteristicData(bleDevice: self, subject: subject, characteristicUuid: uuid))
+                })
                 BleDevice.pushStart()
             }, onDispose: {
                 BleDevice.doPush()
@@ -240,7 +252,9 @@ open class BleDevice: NSObject {
         let subject = ReplaySubject<Data>.create(bufferSize: 1)
         return subject
             .do(onSubscribe: {
-                BleDevice.pushQueue.value.append(.WriteCharacteristicData(bleDevice: self, subject: subject, characteristicUuid: uuid, data: data))
+                BleDevice.pushQueue.mutate({ pushData in
+                    pushData.append(.WriteCharacteristicData(bleDevice: self, subject: subject, characteristicUuid: uuid, data: data))
+                })
                 BleDevice.pushStart()
             }, onDispose: {
                 BleDevice.doPush()
@@ -278,7 +292,9 @@ open class BleDevice: NSObject {
             .andThen(getCharacteristic(uuid: characteristicUuid))
             .flatMap { (characteristic) -> Single<Data> in
                 let dataSubject = ReplaySubject<Data>.create(bufferSize: 1)
-                self.characteristicDic[characteristicUuid] = (subject: dataSubject, data: Data())
+                self.characteristicDic.mutate({ dict in
+                    dict[characteristicUuid] = (subject: dataSubject, data: Data())
+                })
                 return Completable.create { (observer) -> Disposable in
                     self.readCharacteristicInner(characteristic: characteristic)
                     observer(.completed)
@@ -287,7 +303,9 @@ open class BleDevice: NSObject {
                 .andThen(dataSubject.firstOrError())
                 .timeout(DispatchTimeInterval.seconds(3), scheduler: ConcurrentDispatchQueueScheduler(qos: .background))
                 .do(onError: { (error) in
-                    self.characteristicDic.removeValue(forKey: characteristicUuid)
+                    self.characteristicDic.mutate({ dict in
+                        dict.removeValue(forKey: characteristicUuid)
+                    })
                 })
             }
             .subscribe(onSuccess: { (data) in
@@ -302,7 +320,9 @@ open class BleDevice: NSObject {
             .andThen(getCharacteristic(uuid: characteristicUuid))
             .flatMap { (characteristic) -> Single<Data> in
                 let dataSubject = ReplaySubject<Data>.create(bufferSize: 1)
-                self.characteristicDic[characteristicUuid] = (subject: dataSubject, data: data)
+                self.characteristicDic.mutate { dict in
+                    dict[characteristicUuid] = (subject: dataSubject, data: data)
+                }
                 return Completable.create { (observer) -> Disposable in
                     self.writeCharacteristicInner(characteristic: characteristic, data: data)
                     observer(.completed)
@@ -311,7 +331,9 @@ open class BleDevice: NSObject {
                 .andThen(dataSubject.firstOrError())
                 .timeout(DispatchTimeInterval.seconds(3), scheduler: ConcurrentDispatchQueueScheduler(qos: .background))
                 .do(onError: { (error) in
-                    self.characteristicDic.removeValue(forKey: characteristicUuid)
+                    self.characteristicDic.mutate { dict in
+                        dict.removeValue(forKey: characteristicUuid)
+                    }
                 })
             }
             .subscribe(onSuccess: { (data) in
@@ -412,8 +434,10 @@ extension BleDevice: CBPeripheralDelegate {
     }
     
     public func peripheral(_ peripheral: CBPeripheral, didUpdateValueFor characteristic: CBCharacteristic, error: Error?) {
-        if let subjectAndData = characteristicDic[characteristic.uuid.uuidString] {
-            characteristicDic.removeValue(forKey: characteristic.uuid.uuidString)
+        if let subjectAndData = characteristicDic.value[characteristic.uuid.uuidString] {
+            characteristicDic.mutate({ dict in
+                dict.removeValue(forKey: characteristic.uuid.uuidString)
+            })
             subjectAndData.subject.on(.next(characteristic.value ?? subjectAndData.data))
         } else if let subject = notificationDic[characteristic.uuid.uuidString], let _value = characteristic.value {
             subject.on(.next(_value))
@@ -421,8 +445,10 @@ extension BleDevice: CBPeripheralDelegate {
     }
     
     public func peripheral(_ peripheral: CBPeripheral, didWriteValueFor characteristic: CBCharacteristic, error: Error?) {
-        if let subjectAndData = characteristicDic[characteristic.uuid.uuidString] {
-            characteristicDic.removeValue(forKey: characteristic.uuid.uuidString)
+        if let subjectAndData = characteristicDic.value[characteristic.uuid.uuidString] {
+            characteristicDic.mutate { dict in
+                dict.removeValue(forKey: characteristic.uuid.uuidString)
+            }
             subjectAndData.subject.on(.next(characteristic.value ?? subjectAndData.data))
         }
     }
