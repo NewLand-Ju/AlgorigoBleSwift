@@ -417,8 +417,8 @@ extension BleDevice: CBPeripheralDelegate {
     //CBPeripheralDelegate Override Methods
     public func peripheral(_ peripheral: CBPeripheral, didDiscoverServices error: Error?) {
         discoverSubject.onCompleted()
-        if error != nil {
-            debugPrint("error : peripheral didDiscoverServices: \(peripheral.name ?? peripheral.identifier.uuidString), error: \(error.debugDescription)")
+        if let error = error {
+            debugPrint("error : peripheral didDiscoverServices: \(peripheral.name ?? peripheral.identifier.uuidString), error: \(error.localizedDescription)")
         } else {
             self.peripheral = peripheral
             for service in peripheral.services! {
