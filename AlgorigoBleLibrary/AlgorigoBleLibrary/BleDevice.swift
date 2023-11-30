@@ -116,8 +116,8 @@ open class BleDevice: NSObject {
     fileprivate var peripheral: CBPeripheral! = nil
     fileprivate let characteristicSubject = ReplaySubject<CBCharacteristic>.createUnbounded()
     fileprivate var characteristicDic = AtomicValue([String: (subject: ReplaySubject<Data>, data: Data)]())
-    fileprivate var notificationObservableDic = [String: (observable: Observable<Observable<Data>>, subject: ReplaySubject<Observable<Data>>)]()
-    fileprivate var notificationDic = [String: PublishSubject<Data>]()
+    fileprivate var notificationObservableDic: [String: (observable: Observable<Observable<Data>>, subject: ReplaySubject<Observable<Data>>)] = [:]
+    fileprivate var notificationDic: [String: PublishSubject<Data>] = [:]
     fileprivate var discoverSubject = PublishSubject<Any>()
     fileprivate var discoverCompletable: Completable {
         return discoverSubject.ignoreElements().asCompletable()
@@ -417,8 +417,8 @@ extension BleDevice: CBPeripheralDelegate {
     //CBPeripheralDelegate Override Methods
     public func peripheral(_ peripheral: CBPeripheral, didDiscoverServices error: Error?) {
         discoverSubject.onCompleted()
-        if error != nil {
-            debugPrint("error : peripheral didDiscoverServices: \(peripheral.name ?? peripheral.identifier.uuidString), error: \(error.debugDescription)")
+        if let error = error {
+            debugPrint("error : peripheral didDiscoverServices: \(peripheral.name ?? peripheral.identifier.uuidString), error: \(error.localizedDescription)")
         } else {
             self.peripheral = peripheral
             for service in peripheral.services! {

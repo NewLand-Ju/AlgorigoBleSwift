@@ -52,16 +52,16 @@ class ViewController: UIViewController {
     }
 
     @IBAction func handleScanBtn() {
-        if disposableAll != nil {
-            disposableAll?.dispose()
+        if let disposables = disposableAll {
+            disposables.dispose()
         } else {
             startScan()
         }
     }
     
     @IBAction func handleScanSpecificBtn(_ sender: Any) {
-        if disposableDevice != nil {
-            disposableDevice?.dispose()
+        if let disposable = disposableDevice {
+            disposable.dispose()
         } else {
             startScanWithServices()
         }

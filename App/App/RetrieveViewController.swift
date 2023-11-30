@@ -183,12 +183,8 @@ extension RetrieveViewController: DeviceTableViewCellDelegate {
 
 extension Array where Element == String {
     func toUuid() -> [UUID] {
-        map({ (string) -> UUID? in
+        compactMap({ (string) -> UUID? in
             UUID(uuidString: string)
-        }).filter({ (uuid) -> Bool in
-            uuid != nil
-        }).map({ (uuid) -> UUID in
-            uuid!
         })
     }
 }

@@ -129,14 +129,8 @@ public class BluetoothManager : NSObject, CBCentralManagerDelegate {
         return retrieveDeviceInner(identifiers: identifiers)
                 .map { [unowned self] (peripherals) -> [BleDevice] in
                     return peripherals
-                        .map { [unowned self] (peripheral) -> BleDevice? in
+                        .compactMap { [unowned self] (peripheral) -> BleDevice? in
                             self.onBluetoothDeviceFound(peripheral)
-                        }
-                        .filter { (device) -> Bool in
-                            device != nil
-                        }
-                        .map { (device) -> BleDevice in
-                            device!
                         }
                 }
     }
