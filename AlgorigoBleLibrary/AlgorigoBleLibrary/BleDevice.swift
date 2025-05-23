@@ -10,6 +10,7 @@ import Foundation
 import CoreBluetooth
 import RxSwift
 import RxRelay
+import NordicWiFiProvisioner_BLE
 
 open class BleDevice: NSObject {
 
@@ -122,6 +123,11 @@ open class BleDevice: NSObject {
     fileprivate var discoverCompletable: Completable {
         return discoverSubject.ignoreElements().asCompletable()
     }
+    fileprivate(set) var deviceManager: DeviceManager?
+    fileprivate var discoveredWifiList: [WifiInfo] = []
+    fileprivate var wiFiScannerDelegateWrapper: WiFiScannerDelegateWrapper?
+    fileprivate var provisionDelegateWrapper: ProvisionDelegateWrapper?
+    fileprivate var infoDelegateWrapper: DeviceInfoDelegateWrapper?
 
     public required init(_ peripheral: CBPeripheral) {
         self.peripheral = peripheral
@@ -139,9 +145,11 @@ open class BleDevice: NSObject {
             .do(onError: { (error) in
                 dispose = false
                 self.connectionState = .DISCONNECTED
+                self.deviceManager = nil
             }, onCompleted: {
                 dispose = false
                 self.connectionState = .CONNECTED
+                self.deviceManager = DeviceManager.init(deviceId: self.peripheral.identifier)
             }, onSubscribe: {
                 self.connectionState = .CONNECTING
             }, onSubscribed: {
@@ -279,6 +287,182 @@ open class BleDevice: NSObject {
                 }), subject: subject)
         }
         return notificationObservableDic[uuid]!.observable
+    }
+
+    func scanWifiList() -> Single<[WifiInfo]> {
+        guard let deviceManager = self.deviceManager else {
+              return Single.error(NSError(domain: "BleDevice", code: -1, userInfo: [NSLocalizedDescriptionKey: "DeviceManager not initialized"]))
+          }
+        
+        return Single.create { single in
+            let delegate = WiFiScannerDelegateWrapper(
+                onDiscovered: { wifi, _ in
+                    if !self.discoveredWifiList.contains(where: { $0.ssid == wifi.ssid }) {
+                        self.discoveredWifiList.append(wifi)
+                    }
+                    single(.success(self.discoveredWifiList))
+                },
+                onStart: {},
+                onStop: {}
+            )
+            
+            do {
+                deviceManager.wifiScannerDelegate = delegate
+                try deviceManager.startScan()
+            } catch {
+                single(.failure(error))
+            }
+            
+            // Stop after 10 seconds
+            DispatchQueue.main.asyncAfter(deadline: .now() + 10) {
+                do {
+                    try deviceManager.stopScan()
+                } catch {
+                    // Ignore error if already stopped
+                }
+            }
+            
+            return Disposables.create()
+        }
+    }
+    
+    func startProvisioning(ssid: String, password: String) -> Single<Bool> {
+        guard let deviceManager = self.deviceManager else {
+              return Single.error(NSError(domain: "BleDevice", code: -1, userInfo: [NSLocalizedDescriptionKey: "DeviceManager not initialized"]))
+          }
+        
+        guard let wifiInfo = discoveredWifiList.first(where: { $0.ssid == ssid }) else {
+            return Single.error(NSError(domain: "BleDevice", code: -1, userInfo: [NSLocalizedDescriptionKey: "SSID not found"]))
+        }
+        
+        return Single.create { single in
+            let delegate = ProvisionDelegateWrapper(
+                onProvisionResult: { _ in },
+                onForgetResult: { _ in },
+                onStateChange: { state in
+                    switch state {
+                    case .connected:
+                        single(.success(true))
+                    case .connectionFailed(_):
+                        single(.success(false))
+                    default:
+                        break
+                    }
+                }
+            )
+            
+            deviceManager.provisionerDelegate = delegate
+            
+            do {
+                try deviceManager.setConfig(wifi: wifiInfo, passphrase: password, volatileMemory: false)
+            } catch {
+                single(.failure(error))
+            }
+
+            return Disposables.create()
+        }
+    }
+    
+    func cleanProvisioning() -> Completable {
+        guard let deviceManager = self.deviceManager else {
+              return Completable.error(NSError(domain: "BleDevice", code: -1, userInfo: [NSLocalizedDescriptionKey: "DeviceManager not initialized"]))
+          }
+        
+        return Completable.create { completable in
+            let delegate = ProvisionDelegateWrapper(
+                onProvisionResult: { _ in },
+                onForgetResult: { result in
+                    switch result {
+                    case .success:
+                        completable(.completed)
+                    case .failure(let error):
+                        completable(.error(error))
+                    }
+                },
+                onStateChange: { _ in }
+            )
+            
+            deviceManager.provisionerDelegate = delegate
+
+            do {
+                try deviceManager.forgetConfig()
+            } catch {
+                completable(.error(error))
+            }
+
+            return Disposables.create()
+        }
+    }
+    
+    func getDeviceStatus() -> Single<[String: Any]> {
+        guard let deviceManager = self.deviceManager else {
+              return Single.error(NSError(domain: "BleDevice", code: -1, userInfo: [NSLocalizedDescriptionKey: "DeviceManager not initialized"]))
+          }
+        
+        return Single.create { single in
+            var versionValue: Int?
+            var statusValue: DeviceStatus?
+
+            func tryEmit() {
+                guard let version = versionValue, let status = statusValue else { return }
+
+                var statusMap: [String: Any] = [:]
+
+                if let state = status.state {
+                    statusMap["state"] = String(describing: state)
+                }
+
+                if let prov = status.provisioningInfo {
+                    statusMap["provisioningInfo"] = [
+                        "ssid": prov.ssid,
+                        "bssid": prov.bssid.description,
+                        "auth": prov.auth?.description ?? "unknown",
+                        "channel": prov.channel
+                    ]
+                }
+
+                if let conn = status.connectionInfo {
+                    statusMap["connectionInfo"] = [
+                        "ip": conn.ip?.description ?? "unknown"
+                    ]
+                }
+
+                single(.success([
+                    "version": version,
+                    "status": statusMap
+                ]))
+            }
+
+            let delegate = DeviceInfoDelegateWrapper(
+                onVersionReceived: { result in
+                    if case .success(let value) = result {
+                        versionValue = value
+                        tryEmit()
+                    } else if case .failure(let error) = result {
+                        single(.failure(error))
+                    }
+                },
+                onDeviceStatusReceived: { result in
+                    if case .success(let value) = result {
+                        statusValue = value
+                        tryEmit()
+                    } else if case .failure(let error) = result {
+                        single(.failure(error))
+                    }
+                }
+            )
+
+            deviceManager.infoDelegate = delegate
+
+            do {
+                try deviceManager.readVersion()
+                try deviceManager.readDeviceStatus()
+            } catch {
+                single(.failure(error))
+            }
+
+            return Disposables.create()
+        }
     }
     
     fileprivate func disableNotification(uuid: String) {
@@ -457,5 +641,86 @@ extension BleDevice: CBPeripheralDelegate {
     }
     
     public func peripheral(_ peripheral: CBPeripheral, didWriteValueFor descriptor: CBDescriptor, error: Error?) {
+    }
+}
+
+class WiFiScannerDelegateWrapper: WiFiScannerDelegate {
+    let onDiscovered: (WifiInfo, Int?) -> Void
+    let onStart: () -> Void
+    let onStop: () -> Void
+    
+    init(onDiscovered: @escaping (WifiInfo, Int?) -> Void, onStart: @escaping () -> Void, onStop: @escaping () -> Void) {
+        self.onDiscovered = onDiscovered
+        self.onStart = onStart
+        self.onStop = onStop
+    }
+    
+    func deviceManager(_ deviceManager: DeviceManager, discoveredAccessPoint wifi: WifiInfo, rssi: Int?) {
+        onDiscovered(wifi, rssi)
+    }
+    
+    func deviceManagerDidStartScan(_ deviceManager: DeviceManager, error: Error?) {
+        onStart()
+    }
+    
+    func deviceManagerDidStopScan(_ deviceManager: DeviceManager, error: Error?) {
+        onStop()
+    }
+}
+
+class ProvisionDelegateWrapper: ProvisionDelegate {
+    let onProvisionResult: (Result<Void, Error>) -> Void
+    let onForgetResult: (Result<Void, Error>) -> Void
+    let onStateChange: (NordicWiFiProvisioner_BLE.ConnectionState) -> Void
+    
+    init(
+        onProvisionResult: @escaping (Result<Void, Error>) -> Void,
+        onForgetResult: @escaping (Result<Void, Error>) -> Void,
+        onStateChange: @escaping (NordicWiFiProvisioner_BLE.ConnectionState) -> Void
+    ) {
+        self.onProvisionResult = onProvisionResult
+        self.onForgetResult = onForgetResult
+        self.onStateChange = onStateChange
+    }
+    
+    func deviceManagerDidSetConfig(_ deviceManager: NordicWiFiProvisioner_BLE.DeviceManager, error: Error?) {
+        if let error {
+            onProvisionResult(.failure(error))
+        } else {
+            onProvisionResult(.success(()))
+        }
+    }
+    
+    func deviceManagerDidForgetConfig(_ deviceManager: NordicWiFiProvisioner_BLE.DeviceManager, error: Error?) {
+        if let error {
+            onForgetResult(.failure(error))
+        } else {
+            onForgetResult(.success(()))
+        }
+    }
+    
+    func deviceManager(_ provisioner: NordicWiFiProvisioner_BLE.DeviceManager, didChangeState state: NordicWiFiProvisioner_BLE.ConnectionState) {
+        onStateChange(state)
+    }
+}
+
+class DeviceInfoDelegateWrapper: InfoDelegate {
+    let onVersionReceived: (Result<Int, ProvisionerInfoError>) -> Void
+    let onDeviceStatusReceived: (Result<DeviceStatus, ProvisionerError>) -> Void
+    
+    init(
+        onVersionReceived: @escaping (Result<Int, ProvisionerInfoError>) -> Void,
+        onDeviceStatusReceived: @escaping (Result<DeviceStatus, ProvisionerError>) -> Void
+    ) {
+        self.onVersionReceived = onVersionReceived
+        self.onDeviceStatusReceived = onDeviceStatusReceived
+    }
+    
+    func versionReceived(_ version: Result<Int, ProvisionerInfoError>) {
+        onVersionReceived(version)
+    }
+    
+    func deviceStatusReceived(_ status: Result<DeviceStatus, ProvisionerError>) {
+        onDeviceStatusReceived(status)
     }
 }
