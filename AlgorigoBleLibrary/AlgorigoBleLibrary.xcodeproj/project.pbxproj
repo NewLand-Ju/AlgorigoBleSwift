@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		04F93B9E2DE004DA00B773F3 /* NordicWiFiProvisioner-BLE in Frameworks */ = {isa = PBXBuildFile; productRef = 04F93B9D2DE004DA00B773F3 /* NordicWiFiProvisioner-BLE */; };
 		1143C5AD251C43F60030A119 /* InitializableBleDevice.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1143C5AC251C43F60030A119 /* InitializableBleDevice.swift */; };
 		EE236CCD24A5CA790012C04E /* AlgorigoBleLibrary.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = EE236CC324A5CA780012C04E /* AlgorigoBleLibrary.framework */; };
 		EE236CD224A5CA790012C04E /* AlgorigoBleLibraryTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE236CD124A5CA790012C04E /* AlgorigoBleLibraryTests.swift */; };
@@ -47,6 +48,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				04F93B9E2DE004DA00B773F3 /* NordicWiFiProvisioner-BLE in Frameworks */,
 				EE236CEE24A5CB6A0012C04E /* RxCocoa in Frameworks */,
 				EE236CEC24A5CB6A0012C04E /* RxSwift in Frameworks */,
 				EE236CEA24A5CB6A0012C04E /* RxRelay in Frameworks */,
@@ -135,6 +137,7 @@
 				EE236CE924A5CB6A0012C04E /* RxRelay */,
 				EE236CEB24A5CB6A0012C04E /* RxSwift */,
 				EE236CED24A5CB6A0012C04E /* RxCocoa */,
+				04F93B9D2DE004DA00B773F3 /* NordicWiFiProvisioner-BLE */,
 			);
 			productName = AlgorigoBleLibrary;
 			productReference = EE236CC324A5CA780012C04E /* AlgorigoBleLibrary.framework */;
@@ -188,6 +191,7 @@
 			mainGroup = EE236CB924A5CA780012C04E;
 			packageReferences = (
 				EE236CE824A5CB6A0012C04E /* XCRemoteSwiftPackageReference "RxSwift" */,
+				04F93B9C2DE004DA00B773F3 /* XCRemoteSwiftPackageReference "IOS-nRF-Wi-Fi-Provisioner" */,
 			);
 			productRefGroup = EE236CC424A5CA780012C04E /* Products */;
 			projectDirPath = "";
@@ -490,6 +494,14 @@
 /* End XCConfigurationList section */
 
 /* Begin XCRemoteSwiftPackageReference section */
+		04F93B9C2DE004DA00B773F3 /* XCRemoteSwiftPackageReference "IOS-nRF-Wi-Fi-Provisioner" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/NordicSemiconductor/IOS-nRF-Wi-Fi-Provisioner.git";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 2.1.1;
+			};
+		};
 		EE236CE824A5CB6A0012C04E /* XCRemoteSwiftPackageReference "RxSwift" */ = {
 			isa = XCRemoteSwiftPackageReference;
 			repositoryURL = "https://github.com/ReactiveX/RxSwift.git";
@@ -501,6 +513,11 @@
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
+		04F93B9D2DE004DA00B773F3 /* NordicWiFiProvisioner-BLE */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 04F93B9C2DE004DA00B773F3 /* XCRemoteSwiftPackageReference "IOS-nRF-Wi-Fi-Provisioner" */;
+			productName = "NordicWiFiProvisioner-BLE";
+		};
 		EE236CE924A5CB6A0012C04E /* RxRelay */ = {
 			isa = XCSwiftPackageProductDependency;
 			package = EE236CE824A5CB6A0012C04E /* XCRemoteSwiftPackageReference "RxSwift" */;
